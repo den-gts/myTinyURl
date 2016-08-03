@@ -2,8 +2,7 @@ from tornado.ioloop import IOLoop
 from tornado.web import RequestHandler, Application, url
 import motor
 import string
-
-MONGO_HOST = '10.250.216.67'
+from tinyurl import settings
 
 
 class GetTynyHandler(RequestHandler):
@@ -53,11 +52,12 @@ class TinyUrlHandler(RequestHandler):
         result = await self.db['links'].find_one(query)
         if not result:
             self.send_error(status_code=404)
+            return
         self.redirect(result['full'])
 
 
 def run_server():
-    client = motor.motor_tornado.MotorClient(MONGO_HOST, 27017)
+    client = motor.motor_tornado.MotorClient(settings.MONGO_HOST)
     database = client['myapp']
 
     app = Application([
@@ -68,7 +68,7 @@ def run_server():
     counter = IOLoop.instance().run_sync(lambda: database['settings'].find_one({'_id': 'counter'}))
     counter = counter['value'] if counter else 1
     app.counter = counter
-    app.listen(8888)
+    app.listen(settings.APP_PORT)
     IOLoop.current().start()
 
 if __name__ == '__main__':
