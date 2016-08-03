@@ -5,6 +5,7 @@ import string
 import random
 MONGO_HOST = '10.250.216.67'
 
+
 class GetTynyHandler(RequestHandler):
     def initialize(self, count, db):
         self.char_count = count
@@ -40,14 +41,18 @@ class TinyUrlHandler(RequestHandler):
         result = await self.db['links'].find_one(query)   # TODO riase 404 error if result is empty
         self.redirect(result['full'])
 
-if __name__ == '__main__':
+
+def run_server():
     client = motor.motor_tornado.MotorClient(MONGO_HOST, 27017)
     database = client['myapp']
     app = Application([
         url(r'/get_tiny/(.*)', GetTynyHandler, dict(count=6, db=database)),
         url(r'/api/.*', ApiHandler),
         url(r'/(.{6})', TinyUrlHandler, dict(db=database))
-        ])
+    ])
     app.links = {}
     app.listen(8888)
     IOLoop.current().start()
+
+if __name__ == '__main__':
+    run_server()
