@@ -3,7 +3,7 @@ from tornado.web import RequestHandler, Application, url
 import motor
 import string
 import random
-
+MONGO_HOST = '10.250.216.67'
 
 class GetTynyHandler(RequestHandler):
     def initialize(self, count, db):
@@ -41,7 +41,7 @@ class TinyUrlHandler(RequestHandler):
         self.redirect(result['full'])
 
 if __name__ == '__main__':
-    client = motor.motor_tornado.MotorClient('10.250.216.67', 27017)
+    client = motor.motor_tornado.MotorClient(MONGO_HOST, 27017)
     database = client['myapp']
     app = Application([
         url(r'/get_tiny/(.*)', GetTynyHandler, dict(count=6, db=database)),
