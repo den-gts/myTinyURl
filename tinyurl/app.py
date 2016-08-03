@@ -30,7 +30,7 @@ class GetTynyHandler(RequestHandler):
                                          {'_id': 'counter', 'value': self.application.counter},
                                          upsert=True)
         await self.db['links'].insert(doc)
-        self.write(tiny_url.encode('utf-8'))  # TODO return formatted doc. etc html page or json response
+        self.write('<html><a href={0}>{0}</a></html>'.format(tiny_url).encode('utf-8'))  # TODO use template
 
 
 class ApiHandler(RequestHandler):
@@ -57,7 +57,7 @@ class TinyUrlHandler(RequestHandler):
 
 
 def run_server():
-    client = motor.motor_tornado.MotorClient(settings.MONGO_HOST)
+    client = motor.motor_tornado.MotorClient(settings.MONGO_HOST, settings.MONGO_PORT)
     database = client['myapp']
 
     app = Application([
