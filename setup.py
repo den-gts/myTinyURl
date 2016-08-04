@@ -15,7 +15,7 @@ setup(
                 ],
     entry_points={
         'console_scripts':
-            ['run_server = tinyurld.app:run_server']
+            ['tinyurld = tinyurld.app:run_server']
     },
     install_requires=[
         'tornado==4.4.1',
