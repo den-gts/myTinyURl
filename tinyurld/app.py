@@ -1,7 +1,7 @@
 import tornado.log  # TODO config log formater
 from tornado.options import options
 from tornado.ioloop import IOLoop
-from tornado.web import RequestHandler, Application, url, gen
+from tornado.web import RequestHandler, Application, url, gen, os
 import motor
 import string
 
@@ -61,7 +61,7 @@ class TinyUrlHandler(RequestHandler):
 
 
 def bootstrap():
-    options.define('config', 'settings.py', str, help='Config file path')
+    options.define('config', os.path.join(os.path.dirname(__file__), 'settings.py'), str, help='Config file path')
     options.define('host', '0.0.0.0', str, help='Ip address for bind')
     options.define('port', 8888, int, help='application port')
     options.define('autoreload', False, bool, help='Autoreload application after change files')
