@@ -1,8 +1,9 @@
+import tornado.log  # TODO config log formater
+from tornado.options import options
 from tornado.ioloop import IOLoop
 from tornado.web import RequestHandler, Application, url, gen
 import motor
 import string
-from tinyurl import settings
 
 
 class GetTynyHandler(RequestHandler):
@@ -59,20 +60,41 @@ class TinyUrlHandler(RequestHandler):
         self.redirect(result['full'])
 
 
+def bootstrap():
+    options.define('config', 'settings.py', str, help='Config file path')
+    options.define('host', '0.0.0.0', str, help='Ip address for bind')
+    options.define('port', 8888, int, help='application port')
+    options.define('autoreload', False, bool, help='Autoreload application after change files')
+    options.define('debug', False, bool, help='Debug mode')
+    options.define('mongo_host', type=str, help='MongoDB host IP')
+    options.define('mongo_port', 27017, type=int, help='MongoDB port')
+    options.parse_command_line()
+
+    options.parse_config_file(options.config)
+
+    # override options from config file with command line args
+    options.parse_command_line()
+    tornado.log.app_log.info('Read config: {}'.format(options.config))
+
+
 def run_server():
-    client = motor.motor_tornado.MotorClient(settings.MONGO_HOST, settings.MONGO_PORT)
-    database = client['myapp']
+    bootstrap()
+    client = motor.motor_tornado.MotorClient(options.mongo_host, options.mongo_port)
+    database = client['tinyurld']
 
     app = Application([
-        url(r'/get_tiny/(.*)', GetTynyHandler, dict(db=database)),
-        url(r'/api/.*', ApiHandler),
-        url(r'/(.+)', TinyUrlHandler, dict(db=database))
-    ])
+            url(r'/get_tiny/(.*)', GetTynyHandler, dict(db=database)),
+            url(r'/api/.*', ApiHandler),
+            url(r'/(.+)', TinyUrlHandler, dict(db=database))
+        ],
+        autoreload=options.autoreload,
+        debug=options.debug
+    )
     counter = IOLoop.instance().run_sync(lambda: database['settings'].find_one({'_id': 'counter'}))
     counter = counter['value'] if counter else 1
     app.counter = counter
-    app.listen(settings.APP_PORT)
-    print('Start server at {} port'.format(settings.APP_PORT))
+    app.listen(options.port, address=options.host)
+    tornado.log.app_log.info('Start application at {}:{} port'.format(options.host, options.port))
     IOLoop.current().start()
 
 if __name__ == '__main__':
