@@ -72,6 +72,7 @@ def run_server():
     counter = counter['value'] if counter else 1
     app.counter = counter
     app.listen(settings.APP_PORT)
+    print('Start server at {} port'.format(settings.APP_PORT))
     IOLoop.current().start()
 
 if __name__ == '__main__':
