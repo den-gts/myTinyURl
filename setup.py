@@ -1,5 +1,5 @@
 from setuptools import setup, find_packages
-from os.path import join, dirname
+from os.path import join, dirname, basename
 import tinyurld
 
 setup(
@@ -7,6 +7,12 @@ setup(
     version=tinyurld.__version__,
     packages=find_packages(),
     long_description=open(join(dirname(__file__), 'README.md')).read(),
+    data_files=[
+                    (dirname(tinyurld.default_config),
+                     [join(dirname(tinyurld.__file__),
+                           basename(tinyurld.default_config))]
+                     ),
+                ],
     entry_points={
         'console_scripts':
             ['run_server = tinyurld.app:run_server']
