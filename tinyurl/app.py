@@ -1,5 +1,5 @@
 from tornado.ioloop import IOLoop
-from tornado.web import RequestHandler, Application, url
+from tornado.web import RequestHandler, Application, url, gen
 import motor
 import string
 from tinyurl import settings
@@ -10,7 +10,8 @@ class GetTynyHandler(RequestHandler):
         self.db = db
 
     @staticmethod
-    async def _generate_tiny(number):
+    @gen.coroutine
+    def _generate_tiny(number):
         pattern = string.digits + string.ascii_letters
         result = ''
         highest = number
@@ -19,17 +20,18 @@ class GetTynyHandler(RequestHandler):
             result += pattern[lowest]
         return result[::-1]
 
-    async def get(self, uri):
-        word = await self._generate_tiny(self.application.counter)
+    @gen.coroutine
+    def get(self, uri):
+        word = yield self._generate_tiny(self.application.counter)
         self.application.counter += 1
         tiny_url = '{proto}://{host}/{word}'.format(proto=self.request.protocol,
                                                     host=self.request.host,
                                                     word=word)
         doc = {'tiny': word, 'full': uri}
-        await self.db['settings'].update({'_id': 'counter'},
+        yield self.db['settings'].update({'_id': 'counter'},
                                          {'_id': 'counter', 'value': self.application.counter},
                                          upsert=True)
-        await self.db['links'].insert(doc)
+        yield self.db['links'].insert(doc)
         self.write('<html><a href={0}>{0}</a></html>'.format(tiny_url).encode('utf-8'))  # TODO use template
 
 
@@ -42,14 +44,15 @@ class TinyUrlHandler(RequestHandler):
     def initialize(self, db):
         self.db = db
 
-    async def get(self, tiny_uri):
+    @gen.coroutine
+    def get(self, tiny_uri):
         query = {'tiny': tiny_uri}
         request = vars(self.request).copy()
         request['headers'] = vars(request['headers'])
         del request['connection']  # TODO implement recursive convertion all nested object to dict
-        await self.db['log'].insert(request)
+        yield self.db['log'].insert(request)
 
-        result = await self.db['links'].find_one(query)
+        result = yield self.db['links'].find_one(query)
         if not result:
             self.send_error(status_code=404)
             return
