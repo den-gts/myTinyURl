@@ -62,13 +62,15 @@ class TinyUrlHandler(RequestHandler):
 
 
 def bootstrap():
-    options.define('config', tinyurld.default_config, str, help='Config file path')
-    options.define('host', '0.0.0.0', str, help='Ip address for bind')
-    options.define('port', 8888, int, help='application port')
-    options.define('autoreload', False, bool, help='Autoreload application after change files')
-    options.define('debug', False, bool, help='Debug mode')
+    options.define('config', tinyurld.default_config, type=str, help='Config file path')
+    options.define('host', '0.0.0.0', type=str, help='Ip address for bind')
+    options.define('port', 8888, type=int, help='application port')
+    options.define('autoreload', False, type=bool, help='Autoreload application after change files')
+    options.define('debug', False, type=bool, help='Debug mode')
     options.define('mongo_host', type=str, help='MongoDB host IP')
     options.define('mongo_port', 27017, type=int, help='MongoDB port')
+    options.define('mongo_user', None, type=str, help='MongoDB user')
+    options.define('mongo_password', None, type=str, help='MongoDB user password')
     options.parse_command_line()
 
     options.parse_config_file(options.config)
@@ -78,9 +80,24 @@ def bootstrap():
     tornado.log.app_log.info('Read config: {}'.format(options.config))
 
 
+def connect_to_mongo():
+    if options.mongo_user:
+        mongo_auth = '{user}:{password}@'.format(user=options.mongo_user,
+                                                 password=options.mongo_password)
+    else:
+        mongo_auth = ''
+    mongo_url = 'mongodb://{auth}{host}:{port}'.format(host=options.mongo_host,
+                                                       port=options.mongo_port,
+                                                       auth=mongo_auth)
+    tornado.log.app_log.info('Connect to {}'.format(mongo_url))
+    client = motor.motor_tornado.MotorClient(mongo_url)
+    tornado.log.app_log.info('Connected to mongoDB')
+    return client
+
+
 def run_server():
     bootstrap()
-    client = motor.motor_tornado.MotorClient(options.mongo_host, options.mongo_port)
+    client = connect_to_mongo()
     database = client['tinyurld']
 
     app = Application([
