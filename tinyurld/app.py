@@ -61,8 +61,8 @@ class TinyUrlHandler(RequestHandler):
         self.redirect(result['full'])
 
 
-def bootstrap():
-    options.define('config', tinyurld.default_config, type=str, help='Config file path')
+def bootstrap(config_file=None):
+    options.define('config', config_file or tinyurld.default_config, type=str, help='Config file path')
     options.define('host', '0.0.0.0', type=str, help='Ip address for bind')
     options.define('port', 8888, type=int, help='application port')
     options.define('autoreload', False, type=bool, help='Autoreload application after change files')
@@ -95,11 +95,7 @@ def connect_to_mongo():
     return client
 
 
-def run_server():
-    bootstrap()
-    client = connect_to_mongo()
-    database = client['tinyurld']
-
+def make_app(database):
     app = Application([
             url(r'/get_tiny/(.*)', GetTynyHandler, dict(db=database)),
             url(r'/api/.*', ApiHandler),
@@ -114,6 +110,16 @@ def run_server():
     app.listen(options.port, address=options.host)
     tornado.log.app_log.info('Start application at {}:{} port'.format(options.host, options.port))
     IOLoop.current().start()
+    return app
+
+
+def run_server():
+    bootstrap()
+    client = connect_to_mongo()
+    database = client['tinyurld']
+    make_app(database)
+
+
 
 if __name__ == '__main__':
     run_server()
