@@ -19,6 +19,6 @@ setup(
     },
     install_requires=[
         'tornado==4.4.1',
-        'motor==0.6.2'
+        'motor==0.6.2', 'mock'
     ]
 )
