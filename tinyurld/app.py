@@ -107,6 +107,7 @@ def make_app(database):
     counter = IOLoop.instance().run_sync(lambda: database['settings'].find_one({'_id': 'counter'}))
     counter = counter['value'] if counter else 1
     app.counter = counter
+    tornado.log.app_log.info('Start application at {}:{} port'.format(options.host, options.port))
     return app
 
 
@@ -116,7 +117,6 @@ def run_server():
     database = client['tinyurld']
     app = make_app(database)
     app.listen(options.port, address=options.host)
-    tornado.log.app_log.info('Start application at {}:{} port'.format(options.host, options.port))
     IOLoop.current().start()
 
 
