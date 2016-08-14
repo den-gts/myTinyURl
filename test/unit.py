@@ -5,23 +5,8 @@ import tinyurld.app
 from tornado.testing import AsyncHTTPTestCase
 
 
-class TinyGeneartor(AsyncHTTPTestCase):
+class TinyGenerator(AsyncHTTPTestCase):
     def get_app(self):
-
-        def get_mock_collection(col_name):
-            mock_col = mock.Mock()
-            future = tornado.gen.Future()
-            future.set_result({'_id': 'counter', 'value': 1456})
-            empty_future = tornado.gen.Future()
-            empty_future.set_result(None)
-            mock_col.find_one = mock.Mock(return_value=future)
-            mock_col.update = mock.Mock(return_value=empty_future)
-            mock_col.insert = mock.Mock(return_value=empty_future)
-            return mock_col
-
-        #mock_db = mock.MagicMock(spec_set=dict)
-
-        #mock_db.__getitem__.side_effect = get_mock_collection
 
         mock_db = {'settings': mock.Mock(),
                    'links': mock.Mock()}
@@ -38,6 +23,7 @@ class TinyGeneartor(AsyncHTTPTestCase):
         return tinyurld.app.make_app(mock_db)
 
     def test_generate_tiny_url(self):
+        port = self.get_http_port()
         word = 'http://localhost/some/res/1/'
         tiny = 'nu'
         response = self.fetch('/get_tiny/{}'.format(word))
@@ -47,4 +33,5 @@ class TinyGeneartor(AsyncHTTPTestCase):
         self.db['links'].insert.assert_called_with({'tiny': tiny,
                                                     'full': word})
         self.assertEqual(response.body,
-                         '<html><a href={0}>{0}</a></html>'.format(tiny).encode('utf-8'))
+                         '<html><a href={0}>{0}</a></html>'.format('http://localhost:{}/nu'.format(port)).encode(
+                             'utf-8'))
