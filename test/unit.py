@@ -9,15 +9,16 @@ from tornado.testing import AsyncHTTPTestCase
 
 class TestHandlers(AsyncHTTPTestCase):
     full = '/api/some/res/1/'
-    tiny = 'nu'
+    tiny = 'nu'  # nu = 1456
+    counter = 1456
 
     def get_app(self):
-
+        """Create mock database and return web application"""
         mock_db = {'settings': mock.Mock(),
                    'links': mock.Mock(),
                    'log': mock.Mock()}
         future = tornado.gen.Future()
-        future.set_result({'_id': 'counter', 'value': 1456})
+        future.set_result({'_id': 'counter', 'value': self.counter})
         redirect_future = tornado.gen.Future()
         redirect_future.set_result({'tiny': 'http://localhost:{}/{}'.format(self.get_http_port(), self.tiny),
                                     'full': 'http://localhost:{}{}'.format(self.get_http_port(), self.full)})
@@ -32,10 +33,11 @@ class TestHandlers(AsyncHTTPTestCase):
         return tinyurld.app.make_app(mock_db)
 
     def test_generate_tiny_url(self):
+        """Test getter for tiny url from full url"""
         port = self.get_http_port()
         response = self.fetch('/get_tiny/{}'.format('http://localhost:{}{}'.format(self.get_http_port(), self.full)))
         self.db['settings'].update.assert_called_with({'_id': 'counter'},
-                                                      {'_id': 'counter', 'value': 1457},
+                                                      {'_id': 'counter', 'value': self.counter + 1},
                                                       upsert=True)
         self.db['links'].insert.assert_called_with({'tiny': self.tiny,
                                                     'full': "http://localhost:{}{}".format(self.get_http_port(),
@@ -44,7 +46,8 @@ class TestHandlers(AsyncHTTPTestCase):
                          '<html><a href={0}>{0}</a></html>'.format('http://localhost:{}/{}'
                                                                    .format(port, self.tiny)).encode('utf-8'))
 
-    def test_redirect(self):
+    def test_urlHandler(self):
+        """Test redirect from tiny url to full url"""
         response = self.fetch('/{}'.format(self.tiny))
         self.assertEqual(response.code, 200)
         self.assertEqual(response.effective_url, 'http://{}:{}{}'.format('localhost',

@@ -96,14 +96,14 @@ def connect_to_mongo():
     return client
 
 
-def make_app(database, opt=None):
-    opt = opt or {}
+def make_app(database, opt_dict=None):
+    opt_dict = opt_dict or {}
     app = Application([
             url(r'/get_tiny/(.*)', GetTynyHandler, dict(db=database)),
             url(r'/api/.*', ApiHandler),
             url(r'/(.+)', TinyUrlHandler, dict(db=database))
         ],
-        **opt
+        **opt_dict
     )
     counter = IOLoop.instance().run_sync(lambda: database['settings'].find_one({'_id': 'counter'}))
     counter = counter['value'] if counter else 1
@@ -115,8 +115,8 @@ def run_server():
     bootstrap()
     client = connect_to_mongo()
     database = client['tinyurld']
-    app = make_app(database, options)
-    tornado.log.app_log.info('Start application at {}:{} port'.format(opt.host, opt.port))
+    app = make_app(database, options.group_dict('application'))
+    tornado.log.app_log.info('Start application at {}:{} port'.format(options.host, options.port))
     app.listen(options.port, address=options.host)
     IOLoop.current().start()
 
