@@ -58,19 +58,20 @@ class TinyUrlHandler(RequestHandler):
         if not result:
             self.send_error(status_code=404)
             return
-        self.redirect(result['full'])
+        self.redirect(result['full'], True)
 
 
 def bootstrap(config_file=None):
     options.define('config', config_file or tinyurld.default_config, type=str, help='Config file path')
     options.define('host', '0.0.0.0', type=str, help='Ip address for bind')
     options.define('port', 8888, type=int, help='application port')
-    options.define('autoreload', False, type=bool, help='Autoreload application after change files')
-    options.define('debug', False, type=bool, help='Debug mode')
-    options.define('mongo_host', type=str, help='MongoDB host IP')
-    options.define('mongo_port', 27017, type=int, help='MongoDB port')
-    options.define('mongo_user', None, type=str, help='MongoDB user')
-    options.define('mongo_password', None, type=str, help='MongoDB user password')
+    options.define('autoreload', False, type=bool,
+                   help='Autoreload application after change files', group='application')
+    options.define('debug', False, type=bool, help='Debug mode', group='application')
+    options.define('mongo_host', type=str, help='MongoDB host IP', group='mongodb')
+    options.define('mongo_port', 27017, type=int, help='MongoDB port', group='mongodb')
+    options.define('mongo_user', None, type=str, help='MongoDB user', group='mongodb')
+    options.define('mongo_password', None, type=str, help='MongoDB user password', group='mongodb')
     options.parse_command_line()
 
     options.parse_config_file(options.config)
@@ -95,19 +96,18 @@ def connect_to_mongo():
     return client
 
 
-def make_app(database):
+def make_app(database, opt=None):
+    opt = opt or {}
     app = Application([
             url(r'/get_tiny/(.*)', GetTynyHandler, dict(db=database)),
             url(r'/api/.*', ApiHandler),
             url(r'/(.+)', TinyUrlHandler, dict(db=database))
         ],
-        autoreload=options.autoreload,
-        debug=options.debug
+        **opt
     )
     counter = IOLoop.instance().run_sync(lambda: database['settings'].find_one({'_id': 'counter'}))
     counter = counter['value'] if counter else 1
     app.counter = counter
-    tornado.log.app_log.info('Start application at {}:{} port'.format(options.host, options.port))
     return app
 
 
@@ -115,7 +115,8 @@ def run_server():
     bootstrap()
     client = connect_to_mongo()
     database = client['tinyurld']
-    app = make_app(database)
+    app = make_app(database, options)
+    tornado.log.app_log.info('Start application at {}:{} port'.format(opt.host, opt.port))
     app.listen(options.port, address=options.host)
     IOLoop.current().start()
 
