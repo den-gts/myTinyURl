@@ -9,8 +9,7 @@ setup(
     long_description=open(join(dirname(__file__), 'README.md')).read(),
     data_files=[
                     (dirname(tinyurld.default_config),
-                     [join(dirname(tinyurld.__file__),
-                           basename(tinyurld.default_config))]
+                     ['conf/settings.py.example', ]
                      ),
                 ],
     entry_points={
